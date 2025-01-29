@@ -12,7 +12,28 @@ class Item: # LR(1) item
 		self.lookahead = lookahead
 	def __repr__(self) -> str:
 		return f"[{self.LHS} -> {' '.join(self.RHS)}, {self.lookahead}]"
-
+	def __eq__(self, other):
+		# we need this to ensure items with the same content but different mem. address aren't considered two different items
+		return (isinstance(other, Item)
+				and self.LHS == other.LHS
+               	and self.RHS == other.RHS
+                and self.lookahead == other.lookahead)
+    
+	def __hash__(self):
+		return hash((self.LHS, tuple(self.RHS), self.lookahead))
+	def afterdot(self):
+		i = 0
+		for x in self.RHS:
+			if x == DOT:
+				if i == len(self.RHS) - 1:
+					return None
+				else: # returns tuple(Nterm after dot, its index)
+					return ((self.RHS)[i+1], i+1)
+			i += 1
+	def shiftdot(self) -> Item:
+		new_RHS = self.RHS
+		new_RHS[self.afterdot()[1]], new_RHS[self.afterdot()[1]-1] = new_RHS[self.afterdot()[1]-1], new_RHS[self.afterdot()[1]]
+		return Item(self.LHS, new_RHS, self.lookahead)
 class Production:
     def __init__(self, LHS, RHS: list) -> None:
         self.LHS = LHS
@@ -96,9 +117,39 @@ def compute_first():
                 firstset[production.LHS] = unioned
                 changed = True
 
-compute_first()
+compute_first() # generates the pre-computed FIRST(a) for every a E V
 
 def closure(I: set) -> set:
 	closureset = I
-	
+	changed = True
+	while changed:
+		changed = False
+		old_len = len(closureset)
+		add_set = set()
+		for item in closureset:
+			B, index = item.afterdot()
+			if B != None and B in V:
+				beta = []
+				for i in range(index+1, len(item.RHS)):
+					beta.append(item.RHS[i])
+				beta.append(item.lookahead)
+				lookaheads = first(beta)
+				for production in P:
+					if production.LHS == B:
+						for b in lookaheads-{EPSILON}:
+							new_RHS = [DOT]
+							new_RHS.extend(production.RHS)
+							add_set.add(Item(B, new_RHS, b))
+		closureset = closureset | add_set
+		if len(closureset) > old_len:
+			changed = True
+	return closureset
+
+def goto(I, X):
+	gotoset = set()
+	for item in I:
+		index = item.afterdot()[1]-1
+		if X in item.RHS:
+			gotoset.add(item.shiftdot())
+	return closure(gotoset)
 
