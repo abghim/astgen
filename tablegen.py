@@ -26,12 +26,12 @@ class Item: # LR(1) item
 		for x in self.RHS:
 			if x == DOT:
 				if i == len(self.RHS) - 1:
-					return None
+					return (None, None)
 				else: # returns tuple(Nterm after dot, its index)
 					return ((self.RHS)[i+1], i+1)
 			i += 1
-	def shiftdot(self) -> Item:
-		new_RHS = self.RHS
+	def shiftdot(self):
+		new_RHS = list(self.RHS)
 		new_RHS[self.afterdot()[1]], new_RHS[self.afterdot()[1]-1] = new_RHS[self.afterdot()[1]-1], new_RHS[self.afterdot()[1]]
 		return Item(self.LHS, new_RHS, self.lookahead)
 class Production:
@@ -64,7 +64,7 @@ Saug = "S'"
 T.update(["id", '+', '*', '(', ')', EOI])
 V.update(["S'", "E", "T", "F"])
 P.update([
-	Production("S'", ['E']),
+	Production("S'", ['E']), # make sure to augment grammar
 	Production("E", ['E', '+', 'T']),
 	Production("E", ["T"]),
 	Production("T", ['T', '*', 'F']),
@@ -148,8 +148,31 @@ def closure(I: set) -> set:
 def goto(I, X):
 	gotoset = set()
 	for item in I:
-		index = item.afterdot()[1]-1
-		if X in item.RHS:
+		sym, index = item.afterdot()
+		if sym == X:
 			gotoset.add(item.shiftdot())
 	return closure(gotoset)
 
+def buildcc() -> list:
+	I0 = closure({Item(Saug, [DOT, S], EOI)})
+	C = [I0]
+	
+	worklist = [I0]
+	
+	while len(worklist) != 0:
+		state = worklist.pop(0)
+		for X in V|T:
+			new = goto(state, X)
+			if new not in C and len(new) != 0:
+				C.append(new)
+				worklist.append(new)
+	return C
+
+C = buildcc()
+print(len(C))
+nfd = 0
+for x in C:
+	print(f"\nI{nfd}:")
+	nfd += 1
+	for y in x:
+		print(y)
