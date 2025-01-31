@@ -5,6 +5,13 @@ EPSILON = "epsilon" # ε (empty string)
 EOI = "EOI"
 DOT = "."
 
+# special parse table actions
+ERROR = "ERR"
+ACCEPT = "ACC"
+RRCONFLICT = "r-r"
+SRCONFLICT = "s-r"
+WEIRDCONFLICT = "???"
+
 class Item: # LR(1) item
 	def __init__(self, LHS, RHS: list, lookahead) -> None:
 		self.LHS = LHS
@@ -40,6 +47,13 @@ class Production:
         self.RHS = RHS
     def __repr__(self) -> str:
         return f"[{self.LHS} -> {' '.join(self.RHS)}]"
+    def __eq__(self, other):
+        # we need this to ensure productions with the same content but different mem. address aren't considered two different ones
+        return (isinstance(other, Production)
+                and self.LHS == other.LHS
+                and self.RHS == other.RHS)
+    def __hash__(self):
+        return hash((self.LHS, tuple(self.RHS)))
 def printset(s):
 	print("[", end="")
 	for i in s:
@@ -169,10 +183,79 @@ def buildcc() -> list:
 	return C
 
 C = buildcc()
-print(len(C))
-nfd = 0
-for x in C:
-	print(f"\nI{nfd}:")
-	nfd += 1
-	for y in x:
-		print(y)
+
+# we'll number all the production rules
+Pnumbered = []
+for p in P:
+	Pnumbered.append(p)
+
+def tablegen():
+	action, gototab = [], [] # table [i, t] where i is a state number and t is a terminal symbol
+	for i in range(0, len(C)): # initialize everything to error
+		action.append({})
+		gototab.append({})
+		for t in T:
+			action[i][t] = ERROR
+		for v in V:
+			gototab[i][v] = ERROR
+	for i in range(0, len(C)): # for each state
+		for item in C[i]:
+			X, idx = item.afterdot()
+			alpha = []
+			if idx == None: alpha = list(item.RHS); alpha.pop(len(alpha)-1)
+			else:
+				for k in range(0, idx):
+					alpha.append(item.RHS[k])
+			
+			if X != None: # dot isn't at the end
+				if X in T:
+					if action[i][X] != ERROR: action[i][X] = SRCONFLICT if action[i][X][0] == 'r' else f"s{C.index(goto(C[i], X))}"
+					else: action[i][X] = f"s{C.index(goto(C[i], X))}" # the state number of GOTO(Ii, X)
+				elif X in V:
+					gototab[i][X] = C.index(goto(C[i], X)) # the state number of GOTO(Ii, X)
+			else: # dot is at the end, read everything
+				if item.LHS != Saug:
+					if action[i][item.lookahead] != ERROR: action[i][item.lookahead] = RRCONFLICT if action[i][item.lookahead][0] == 'r' else SRCONFLICT
+					else: action[i][item.lookahead] = f"r{Pnumbered.index(Production(item.LHS, alpha))}"
+				else:
+					if action[i][item.lookahead] != ERROR: action[i][item.lookahead] = WEIRDCONFLICT
+					else: action[i][item.lookahead] = ACCEPT
+
+	return (action, gototab)
+
+action, gototab = tablegen()
+
+def printtab():	
+	Tnumbered, Vnumbered = [], []
+	for t in T: Tnumbered.append(t)
+	for v in V: Vnumbered.append(v)
+
+	print("\n\nACITON")
+	print("state\t", end='')
+	for t in Tnumbered:
+		print(f"{t}\t", end='')
+	print("")
+	print("---------------------------------------------------")
+	i = 0
+	for state in action:
+		print(f"{i}\t", end='')
+		i+=1
+		for t in Tnumbered:
+			print(f"{state[t]}\t", end='')
+		print("\n")
+	
+	
+	print("\n\nGOTO")
+	print("state\t", end='')
+	i=0
+	for v in Vnumbered:
+		print(f"{v}\t", end='')
+	print("")
+	print("---------------------------------------------------")
+	for state in gototab:
+		print(f"{i}\t", end='')
+		i+=1
+		for v in Vnumbered:
+			print(f"{state[v]}\t", end='')
+		print("")
+printtab()
