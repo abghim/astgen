@@ -6,8 +6,8 @@ EOI = "EOI"
 DOT = "."
 
 # special parse table actions
-ERROR = "ERR"
-ACCEPT = "ACC"
+ERROR = "0"
+ACCEPT = "1"
 RRCONFLICT = "r-r"
 SRCONFLICT = "s-r"
 WEIRDCONFLICT = "???"
@@ -23,9 +23,9 @@ class Item: # LR(1) item
 		# we need this to ensure items with the same content but different mem. address aren't considered two different items
 		return (isinstance(other, Item)
 				and self.LHS == other.LHS
-               	and self.RHS == other.RHS
-                and self.lookahead == other.lookahead)
-    
+			   	and self.RHS == other.RHS
+				and self.lookahead == other.lookahead)
+	
 	def __hash__(self):
 		return hash((self.LHS, tuple(self.RHS), self.lookahead))
 	def afterdot(self):
@@ -42,18 +42,18 @@ class Item: # LR(1) item
 		new_RHS[self.afterdot()[1]], new_RHS[self.afterdot()[1]-1] = new_RHS[self.afterdot()[1]-1], new_RHS[self.afterdot()[1]]
 		return Item(self.LHS, new_RHS, self.lookahead)
 class Production:
-    def __init__(self, LHS, RHS: list) -> None:
-        self.LHS = LHS
-        self.RHS = RHS
-    def __repr__(self) -> str:
-        return f"[{self.LHS} -> {' '.join(self.RHS)}]"
-    def __eq__(self, other):
-        # we need this to ensure productions with the same content but different mem. address aren't considered two different ones
-        return (isinstance(other, Production)
-                and self.LHS == other.LHS
-                and self.RHS == other.RHS)
-    def __hash__(self):
-        return hash((self.LHS, tuple(self.RHS)))
+	def __init__(self, LHS, RHS: list) -> None:
+		self.LHS = LHS
+		self.RHS = RHS
+	def __repr__(self) -> str:
+		return f"[{self.LHS} -> {' '.join(self.RHS)}]"
+	def __eq__(self, other):
+		# we need this to ensure productions with the same content but different mem. address aren't considered two different ones
+		return (isinstance(other, Production)
+				and self.LHS == other.LHS
+				and self.RHS == other.RHS)
+	def __hash__(self):
+		return hash((self.LHS, tuple(self.RHS)))
 def printset(s):
 	print("[", end="")
 	for i in s:
@@ -69,16 +69,17 @@ P = set() # production
 S = 2
 Saug = 3
 
+syntax_name = "syntax"
 #####################   DEFINE YOUR GRAMMAR HERE!   #######################
 ##### make sure to define S, Saug!
+syntax_name = "calculator"
 
 S = "E"
 Saug = "S'"
 
-T.update(["id", '+', '*', '(', ')', EOI])
+T.update(["id", '+', '*', '(', ')'])
 V.update(["S'", "E", "T", "F"])
 P.update([
-	Production("S'", ['E']), # make sure to augment grammar
 	Production("E", ['E', '+', 'T']),
 	Production("E", ["T"]),
 	Production("T", ['T', '*', 'F']),
@@ -87,10 +88,10 @@ P.update([
 	Production("F", ['(', 'E', ')'])
 ])
 
-
 #####################   DEFINE YOUR GRAMMAR ABOVE!  #######################
 
-
+P.add(Production("S'", ['E'])) # make sure to augment grammar
+T.add(EOI)
 
 firstset = dict()
 for nt in V:
@@ -120,16 +121,16 @@ def first(alpha) -> set:
 		raise ValueError("alpha must be either symbol(int) or list of symbols (list)")
 
 def compute_first():
-    changed = True
-    while changed:
-        changed = False
-        for production in P:
-            old_size = len(firstset[production.LHS])
-            new_symbols = first(production.RHS)
-            unioned = firstset[production.LHS] | new_symbols
-            if len(unioned) > old_size:
-                firstset[production.LHS] = unioned
-                changed = True
+	changed = True
+	while changed:
+		changed = False
+		for production in P:
+			old_size = len(firstset[production.LHS])
+			new_symbols = first(production.RHS)
+			unioned = firstset[production.LHS] | new_symbols
+			if len(unioned) > old_size:
+				firstset[production.LHS] = unioned
+				changed = True
 
 compute_first() # generates the pre-computed FIRST(a) for every a E V
 
@@ -225,11 +226,12 @@ def tablegen():
 
 action, gototab = tablegen()
 
-def printtab():	
-	Tnumbered, Vnumbered = [], []
-	for t in T: Tnumbered.append(t)
-	for v in V: Vnumbered.append(v)
+Tnumbered, Vnumbered = [], []
+for t in T: Tnumbered.append(t)
+for v in V: Vnumbered.append(v)
 
+
+def printtab():	
 	print("\n\nACITON")
 	print("state\t", end='')
 	for t in Tnumbered:
@@ -258,4 +260,41 @@ def printtab():
 		for v in Vnumbered:
 			print(f"{state[v]}\t", end='')
 		print("")
-printtab()
+
+
+with open(f"{syntax_name}.map", "w") as f:
+	ti = 0
+	for t in Tnumbered:
+		f.write(f"{t}\t{ti+10}\n")
+		ti += 1
+	f.write("%%\n")
+	vi = 0
+	lent = len(Tnumbered)
+	for v in Vnumbered:
+		f.write(f"{v}\t{vi+10+lent}\n")
+		vi += 1
+
+with open(f"{syntax_name}.pstb", "w") as f:
+	content = ""
+	ti = 0
+	for t in Tnumbered:
+		content += f"{ti+10}\t"
+		ti += 1
+	content += "\n"
+	
+	for state in action:
+		for t in Tnumbered:
+			content += f"{state[t]}\t"
+		content += "\n"
+	content += "%%\n"
+	vi = 0
+	for v in Vnumbered:
+		content += f"{vi+10+len(Tnumbered)}\t"
+		vi += 1
+	content += "\n"
+	for state in gototab:
+		for v in Vnumbered:
+			content += f"{state[v]}\t"
+		content += "\n"
+	f.write(content)
+
