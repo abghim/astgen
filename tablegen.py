@@ -7,7 +7,7 @@ DOT = "."
 
 # special parse table actions
 ERROR = "0"
-ACCEPT = "1"
+ACCEPT = "ACC"
 RRCONFLICT = "r-r"
 SRCONFLICT = "s-r"
 WEIRDCONFLICT = "???"
@@ -297,4 +297,4 @@ with open(f"{syntax_name}.pstb", "w") as f:
 			content += f"{state[v]}\t"
 		content += "\n"
 	f.write(content)
-
+printtab()
