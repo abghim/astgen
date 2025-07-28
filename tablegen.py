@@ -25,7 +25,7 @@ class Item: # LR(1) item
 				and self.LHS == other.LHS
 			   	and self.RHS == other.RHS
 				and self.lookahead == other.lookahead)
-	
+
 	def __hash__(self):
 		return hash((self.LHS, tuple(self.RHS), self.lookahead))
 	def afterdot(self):
@@ -70,8 +70,10 @@ S = 2
 Saug = 3
 
 syntax_name = "syntax"
+
 #####################   DEFINE YOUR GRAMMAR HERE!   #######################
 ##### make sure to define S, Saug!
+
 syntax_name = "calculator"
 
 S = "E"
@@ -88,14 +90,31 @@ P.update([
 	Production("F", ['(', 'E', ')'])
 ])
 
+
+# Test 2
+# syntax_name = "calculator"
+
+# S = "S"
+# Saug = "S'"
+
+# T.update(['c', 'd'])
+# V.update(['C', 'D', 'S'])
+# P.update([
+# 	Production("S", ['C', 'C']),
+# 	Production("C", ['c', 'C']),
+# 	Production("C", ['d'])
+# ])
+
 #####################   DEFINE YOUR GRAMMAR ABOVE!  #######################
 
-P.add(Production("S'", ['E'])) # make sure to augment grammar
+V.add(Saug)
+P.add(Production(Saug, [S])) # make sure to augment grammar
 T.add(EOI)
+
 
 firstset = dict()
 for nt in V:
-	firstset[nt] = set() # initialize to empty set
+	firstset[nt] = set()
 
 def first(alpha) -> set:
 	if isinstance(alpha, int) or isinstance(alpha, str):
@@ -171,9 +190,9 @@ def goto(I, X):
 def buildcc() -> list:
 	I0 = closure({Item(Saug, [DOT, S], EOI)})
 	C = [I0]
-	
+
 	worklist = [I0]
-	
+
 	while len(worklist) != 0:
 		state = worklist.pop(0)
 		for X in V|T:
@@ -207,7 +226,7 @@ def tablegen():
 			else:
 				for k in range(0, idx):
 					alpha.append(item.RHS[k])
-			
+
 			if X != None: # dot isn't at the end
 				if X in T:
 					if action[i][X] != ERROR: action[i][X] = SRCONFLICT if action[i][X][0] == 'r' else f"s{C.index(goto(C[i], X))}"
@@ -231,7 +250,7 @@ for t in T: Tnumbered.append(t)
 for v in V: Vnumbered.append(v)
 
 
-def printtab():	
+def printtab():
 	print("\n\nACITON")
 	print("state\t", end='')
 	for t in Tnumbered:
@@ -245,8 +264,8 @@ def printtab():
 		for t in Tnumbered:
 			print(f"{state[t]}\t", end='')
 		print("\n")
-	
-	
+
+
 	print("\n\nGOTO")
 	print("state\t", end='')
 	i=0
@@ -281,7 +300,7 @@ with open(f"{syntax_name}.pstb", "w") as f:
 		content += f"{ti+10}\t"
 		ti += 1
 	content += "\n"
-	
+
 	for state in action:
 		for t in Tnumbered:
 			content += f"{state[t]}\t"
