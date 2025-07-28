@@ -1,6 +1,8 @@
 # CLR parsing table generator
 
 # terminals and non-terminals are treated as numbers (ids)
+from sys import exit
+
 EPSILON = "epsilon" # ε (empty string)
 EOI = "EOI"
 DOT = "."
@@ -41,6 +43,7 @@ class Item: # LR(1) item
 		new_RHS = list(self.RHS)
 		new_RHS[self.afterdot()[1]], new_RHS[self.afterdot()[1]-1] = new_RHS[self.afterdot()[1]-1], new_RHS[self.afterdot()[1]]
 		return Item(self.LHS, new_RHS, self.lookahead)
+
 class Production:
 	def __init__(self, LHS, RHS: list) -> None:
 		self.LHS = LHS
@@ -60,42 +63,67 @@ def printset(s):
 		print(i, end=", ")
 	print("]")
 
+calculator_syntax = {
+    "name": "calculator",
+    "start": "E",
+    "terminals": ["id", '+', '*', '(', ')'],
+    "nonterminals": ["E", "T", "F"],
+    "productions": [
+        ["E", 'E', '+', 'T'], # represents the production E -> E + T
+        ["E", "T"],
+        ["T",'T', '*', 'F'],
+        ["T", 'F'],
+        ["F", 'id'],
+        ["F", '(', 'E', ')']
+    ]
+}
 
-# define the grammar
+SAUG = 'S\''
 
-V = set() # non-terminals
-T = set() # terminals
-P = set() # production
-S = 2
-Saug = 3
+# grammar from json (= python dict-like structure)
+def from_dict(grammar:dict) -> tuple: # returns (V, T, P, S)
+    keys = grammar.keys()
+    if not all([(x in keys) for x in ["name", "start", "terminals", "nonterminals", "productions"]]):
+        print("Bad json file: missing either one of field name, start, terminals, nonterminals, or productions")
+        exit()
 
-syntax_name = "syntax"
+    grammar["nonterminals"].append(SAUG) # augmented grammar
+    grammar["terminals"].append(EOI)
+    grammar["productions"].append([SAUG, grammar["start"]])
+
+    return (set(grammar["nonterminals"]), set(grammar["terminals"]), {Production(x[0], x[1:]) for x in grammar["productions"]}, grammar["start"], grammar["name"])
+
+
+# load grammar
+V, T, P, S, syntax_name = from_dict(calculator_syntax)
+
+print(V, T, P, S)
 
 #####################   DEFINE YOUR GRAMMAR HERE!   #######################
-##### make sure to define S, Saug!
+##### make sure to define S, SAUG!
 
-syntax_name = "calculator"
+# syntax_name = "calculator"
 
-S = "E"
-Saug = "S'"
+# S = "E"
+# SAUG = "S'"
 
-T.update(["id", '+', '*', '(', ')'])
-V.update(["S'", "E", "T", "F"])
-P.update([
-	Production("E", ['E', '+', 'T']),
-	Production("E", ["T"]),
-	Production("T", ['T', '*', 'F']),
-	Production("T", ['F']),
-	Production("F", ['id']),
-	Production("F", ['(', 'E', ')'])
-])
+# T.update(["id", '+', '*', '(', ')'])
+# V.update(["S'", "E", "T", "F"])
+# P.update([
+# 	Production("E", ['E', '+', 'T']),
+# 	Production("E", ["T"]),
+# 	Production("T", ['T', '*', 'F']),
+# 	Production("T", ['F']),
+# 	Production("F", ['id']),
+# 	Production("F", ['(', 'E', ')'])
+# ])
 
 
 # Test 2
 # syntax_name = "calculator"
 
 # S = "S"
-# Saug = "S'"
+# SAUG = "S'"
 
 # T.update(['c', 'd'])
 # V.update(['C', 'D', 'S'])
@@ -106,10 +134,6 @@ P.update([
 # ])
 
 #####################   DEFINE YOUR GRAMMAR ABOVE!  #######################
-
-V.add(Saug)
-P.add(Production(Saug, [S])) # make sure to augment grammar
-T.add(EOI)
 
 
 firstset = dict()
@@ -188,7 +212,7 @@ def goto(I, X):
 	return closure(gotoset)
 
 def buildcc() -> list:
-	I0 = closure({Item(Saug, [DOT, S], EOI)})
+	I0 = closure({Item(SAUG, [DOT, S], EOI)})
 	C = [I0]
 
 	worklist = [I0]
@@ -217,7 +241,8 @@ def tablegen():
 		for t in T:
 			action[i][t] = ERROR
 		for v in V:
-			gototab[i][v] = ERROR
+		    if v != SAUG:
+		        gototab[i][v] = ERROR
 	for i in range(0, len(C)): # for each state
 		for item in C[i]:
 			X, idx = item.afterdot()
@@ -231,10 +256,10 @@ def tablegen():
 				if X in T:
 					if action[i][X] != ERROR: action[i][X] = SRCONFLICT if action[i][X][0] == 'r' else f"s{C.index(goto(C[i], X))}"
 					else: action[i][X] = f"s{C.index(goto(C[i], X))}" # the state number of GOTO(Ii, X)
-				elif X in V:
+				elif X in V and X != SAUG:
 					gototab[i][X] = C.index(goto(C[i], X)) # the state number of GOTO(Ii, X)
 			else: # dot is at the end, read everything
-				if item.LHS != Saug:
+				if item.LHS != SAUG:
 					if action[i][item.lookahead] != ERROR: action[i][item.lookahead] = RRCONFLICT if action[i][item.lookahead][0] == 'r' else SRCONFLICT
 					else: action[i][item.lookahead] = f"r{Pnumbered.index(Production(item.LHS, alpha))}"
 				else:
@@ -249,6 +274,7 @@ Tnumbered, Vnumbered = [], []
 for t in T: Tnumbered.append(t)
 for v in V: Vnumbered.append(v)
 
+Vnumbered.remove(SAUG)
 
 def printtab():
 	print("\n\nACITON")
@@ -280,40 +306,40 @@ def printtab():
 			print(f"{state[v]}\t", end='')
 		print("")
 
+# with open(f"{syntax_name}.map", "w") as f:
+# 	ti = 0
+# 	for t in Tnumbered:
+# 		f.write(f"{t}\t{ti+10}\n")
+# 		ti += 1
+# 	f.write("%%\n")
+# 	vi = 0
+# 	lent = len(Tnumbered)
+# 	for v in Vnumbered:
+# 		f.write(f"{v}\t{vi+10+lent}\n")
+# 		vi += 1
 
-with open(f"{syntax_name}.map", "w") as f:
-	ti = 0
-	for t in Tnumbered:
-		f.write(f"{t}\t{ti+10}\n")
-		ti += 1
-	f.write("%%\n")
-	vi = 0
-	lent = len(Tnumbered)
-	for v in Vnumbered:
-		f.write(f"{v}\t{vi+10+lent}\n")
-		vi += 1
+# with open(f"{syntax_name}.pstb", "w") as f:
+# 	content = ""
+# 	ti = 0
+# 	for t in Tnumbered:
+# 		content += f"{ti+10}\t"
+# 		ti += 1
+# 	content += "\n"
 
-with open(f"{syntax_name}.pstb", "w") as f:
-	content = ""
-	ti = 0
-	for t in Tnumbered:
-		content += f"{ti+10}\t"
-		ti += 1
-	content += "\n"
-
-	for state in action:
-		for t in Tnumbered:
-			content += f"{state[t]}\t"
-		content += "\n"
-	content += "%%\n"
-	vi = 0
-	for v in Vnumbered:
-		content += f"{vi+10+len(Tnumbered)}\t"
-		vi += 1
-	content += "\n"
-	for state in gototab:
-		for v in Vnumbered:
-			content += f"{state[v]}\t"
-		content += "\n"
-	f.write(content)
+# 	for state in action:
+# 		for t in Tnumbered:
+# 			content += f"{state[t]}\t"
+# 		content += "\n"
+# 	content += "%%\n"
+# 	vi = 0
+# 	for v in Vnumbered:
+# 		content += f"{vi+10+len(Tnumbered)}\t"
+# 		vi += 1
+# 	content += "\n"
+# 	for state in gototab:
+# 		for v in Vnumbered:
+# 			content += f"{state[v]}\t"
+# 		content += "\n"
+# 	f.write(content)
+#
 printtab()
