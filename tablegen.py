@@ -306,6 +306,36 @@ def printtab():
 			print(f"{state[v]}\t", end='')
 		print("")
 
+def rustprint():
+	print("state\t", end='')
+	for t in Tnumbered:
+		print(f"{t}\t", end='')
+	print("")
+	print("---------------------------------------------------")
+	i = 0
+	for state in action:
+		print(f"{i}\t", end='')
+		i+=1
+		for t in Tnumbered:
+			print(f"{state[t]}\t", end='')
+		print("\n")
+
+
+	print("\n\nGOTO")
+	print("state\t", end='')
+	i=0
+	for v in Vnumbered:
+		print(f"{v}\t", end='')
+	print("")
+	print("---------------------------------------------------")
+	for state in gototab:
+		print(f"{i}\t", end='')
+		i+=1
+		for v in Vnumbered:
+			print(f"{state[v]}\t", end='')
+		print("")
+
+
 # with open(f"{syntax_name}.map", "w") as f:
 # 	ti = 0
 # 	for t in Tnumbered:
@@ -342,4 +372,4 @@ def printtab():
 # 		content += "\n"
 # 	f.write(content)
 #
-printtab()
+rustprint()
