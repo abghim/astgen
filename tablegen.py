@@ -320,7 +320,7 @@ enum Action {
 
 struct Production(u32, Vector<u32>);""")
 
-	print("const rules: [Production; NUMBER_OF_RULES] = [")
+	print(f"const rules: [Production; {len(Pnumbered)}] = [")
 	for i, p in enumerate(Pnumbered):
 		print(f"\tProduction({p.LHS}, vec![{', '.join(p.RHS)}]),")
 	print("];")
