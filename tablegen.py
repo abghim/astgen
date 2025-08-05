@@ -64,34 +64,34 @@ def printset(s):
 	print("]")
 
 calculator_syntax = {
-    "name": "calculator",
-    "start": "E",
-    "terminals": ["id", '+', '*', '(', ')'],
-    "nonterminals": ["E", "T", "F"],
-    "productions": [
-        ["E", 'E', '+', 'T'], # represents the production E -> E + T
-        ["E", "T"],
-        ["T",'T', '*', 'F'],
-        ["T", 'F'],
-        ["F", 'id'],
-        ["F", '(', 'E', ')']
-    ]
+	"name": "calculator",
+	"start": "E",
+	"terminals": ["id", '+', '*', '(', ')'],
+	"nonterminals": ["E", "T", "F"],
+	"productions": [
+		["E", 'E', '+', 'T'], # represents the production E -> E + T
+		["E", "T"],
+		["T",'T', '*', 'F'],
+		["T", 'F'],
+		["F", 'id'],
+		["F", '(', 'E', ')']
+	]
 }
 
 SAUG = 'S\''
 
 # grammar from json (= python dict-like structure)
 def from_dict(grammar:dict) -> tuple: # returns (V, T, P, S)
-    keys = grammar.keys()
-    if not all([(x in keys) for x in ["name", "start", "terminals", "nonterminals", "productions"]]):
-        print("Bad json file: missing either one of field name, start, terminals, nonterminals, or productions")
-        exit()
+	keys = grammar.keys()
+	if not all([(x in keys) for x in ["name", "start", "terminals", "nonterminals", "productions"]]):
+		print("Bad json file: missing either one of field name, start, terminals, nonterminals, or productions")
+		exit()
 
-    grammar["nonterminals"].append(SAUG) # augmented grammar
-    grammar["terminals"].append(EOI)
-    grammar["productions"].append([SAUG, grammar["start"]])
+	grammar["nonterminals"].append(SAUG) # augmented grammar
+	grammar["terminals"].append(EOI)
+	grammar["productions"].append([SAUG, grammar["start"]])
 
-    return (set(grammar["nonterminals"]), set(grammar["terminals"]), {Production(x[0], x[1:]) for x in grammar["productions"]}, grammar["start"], grammar["name"])
+	return (set(grammar["nonterminals"]), set(grammar["terminals"]), {Production(x[0], x[1:]) for x in grammar["productions"]}, grammar["start"], grammar["name"])
 
 
 # load grammar
@@ -241,8 +241,8 @@ def tablegen():
 		for t in T:
 			action[i][t] = ERROR
 		for v in V:
-		    if v != SAUG:
-		        gototab[i][v] = ERROR
+			if v != SAUG:
+				gototab[i][v] = ERROR
 	for i in range(0, len(C)): # for each state
 		for item in C[i]:
 			X, idx = item.afterdot()
@@ -307,19 +307,42 @@ def printtab():
 		print("")
 
 def rustprint():
-	print("state\t", end='')
-	for t in Tnumbered:
-		print(f"{t}\t", end='')
-	print("")
-	print("---------------------------------------------------")
-	i = 0
-	for state in action:
-		print(f"{i}\t", end='')
-		i+=1
-		for t in Tnumbered:
-			print(f"{state[t]}\t", end='')
-		print("\n")
+	NUM_T = len(Tnumbered)
 
+	print("""use std::collections::{HashMap, String, Vector};
+
+enum Action {
+	Shift(u32),
+	Reduce(u32),
+	Accept,
+	Error
+}
+
+struct Production(u32, Vector<u32>);""")
+
+	print("const rules: [Production; NUMBER_OF_RULES] = [")
+	for i, p in enumerate(Pnumbered):
+		print(f"\tProduction({p.LHS}, vec![{', '.join(p.RHS)}]),")
+	print("];")
+
+
+	print(f"const actiontab: [[u32; {len(action)}]; {len(action[0])}] = [")
+	for i, state in enumerate(action):
+		print("\t[", end='')
+		for t in Tnumbered:
+			if state[t] == '0':
+				toprint = 'Action::Error'
+			elif state[t] == 'ACC':
+				toprint = 'Action::Accept'
+			elif state[t][0] == 's' or state[t][0] == 'r':
+				toprint = (f"Action::Reduce({state[t][1]})" if state[t][0] == 'r' else f"Action::Shift({state[t][1]})")
+			else:
+				raise ValueError
+
+
+			print(f"{toprint}, ", end='')
+		print("],")
+	print("];")
 
 	print("\n\nGOTO")
 	print("state\t", end='')
@@ -335,41 +358,4 @@ def rustprint():
 			print(f"{state[v]}\t", end='')
 		print("")
 
-
-# with open(f"{syntax_name}.map", "w") as f:
-# 	ti = 0
-# 	for t in Tnumbered:
-# 		f.write(f"{t}\t{ti+10}\n")
-# 		ti += 1
-# 	f.write("%%\n")
-# 	vi = 0
-# 	lent = len(Tnumbered)
-# 	for v in Vnumbered:
-# 		f.write(f"{v}\t{vi+10+lent}\n")
-# 		vi += 1
-
-# with open(f"{syntax_name}.pstb", "w") as f:
-# 	content = ""
-# 	ti = 0
-# 	for t in Tnumbered:
-# 		content += f"{ti+10}\t"
-# 		ti += 1
-# 	content += "\n"
-
-# 	for state in action:
-# 		for t in Tnumbered:
-# 			content += f"{state[t]}\t"
-# 		content += "\n"
-# 	content += "%%\n"
-# 	vi = 0
-# 	for v in Vnumbered:
-# 		content += f"{vi+10+len(Tnumbered)}\t"
-# 		vi += 1
-# 	content += "\n"
-# 	for state in gototab:
-# 		for v in Vnumbered:
-# 			content += f"{state[v]}\t"
-# 		content += "\n"
-# 	f.write(content)
-#
 rustprint()
