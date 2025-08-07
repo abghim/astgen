@@ -316,15 +316,15 @@ enum Action {
 	Reduce(u32),
 	Accept,
 	Error
-};
+}
 
 enum GotoState {
 	State(u32),
 	Error
-};
+}
 
 
-struct Production(u32, Vector<u32>);\n""")
+struct Production(u32, Vec<u32>);\n""")
 
 	print("""#[repr(u32)]
 enum Terminal {""")
@@ -332,7 +332,7 @@ enum Terminal {""")
 		print(f"\t{t} = {i},")
 		hashmapt[i] = t
 	print("""\tCOUNT
-};\n""")
+}\n""")
 
 	print("""#[repr(u32)]
 enum Nonterminal {""")
@@ -340,8 +340,12 @@ enum Nonterminal {""")
 		print(f"\t{t} = {i},")
 		hashmapv[i] = t
 	print("""\tCOUNT
-};\n\nuse Nonterminal;
-use Terminal;\n""")
+}\n
+
+const Augmented: u32 = Nonterminal::COUNT as u32;
+
+use Nonterminal::*;
+use Terminal::*;\n""")
 
 	print(f"const rules: [Production; {len(Pnumbered)}] = [")
 	for i, p in enumerate(Pnumbered):
@@ -349,7 +353,7 @@ use Terminal;\n""")
 	print("];\n")
 
 
-	print(f"const actiontab: [[u32; {len(action[0])}]; {len(action)}] = [")
+	print(f"const actiontab: [[Action; {len(action[0])}]; {len(action)}] = [")
 	for i, state in enumerate(action):
 		print("\t[", end='')
 		for t in Tnumbered:
@@ -367,7 +371,7 @@ use Terminal;\n""")
 		print("],")
 	print("];\n")
 
-	print(f"const gototab: [[u32; {len(gototab[0])}]; {len(gototab)}] = [")
+	print(f"const gototab: [[GotoState; {len(gototab[0])}]; {len(gototab)}] = [")
 	for i, state in enumerate(gototab):
 		print('\t[', end='')
 		for t in Vnumbered:
