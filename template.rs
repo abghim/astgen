@@ -5,14 +5,14 @@ enum Action {
     Reduce(u32),
     Accept,
     Error
-};
+}
 
 enum GotoState {
 	State(u32),
 	Error
-};
+}
 
-struct Production(u32, Vector<u32>);
+struct Production(u32, Vec<u32>);
 
 /*
  * Production(2, vec![2, 1])
@@ -32,7 +32,7 @@ enum Terminal {
 	EndOfInput = 3,
 	...,
 	COUNT
-};
+}
 
 #[repr(u32)]
 enum Nonterminal {
@@ -41,11 +41,13 @@ enum Nonterminal {
 	Start = 2,
 	...,
 	COUNT
-};
+}
+
+const Augmented = (Nonterminal::COUNT as u32);
 
 
-use Nonterminal;
-use Terminal;
+use Nonterminal::*;
+use Terminal::*;
 
 /*
  * Nonterminals as u32
