@@ -1,0 +1,5 @@
+#!/bin/bash
+
+python3 tablegen.py > test.rs
+rustc test.rs
+
