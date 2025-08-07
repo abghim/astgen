@@ -311,6 +311,7 @@ def rustprint():
 
 	print("""use std::collections::HashMap;
 
+#[derive(Copy, Clone)]
 enum Action {
 	Shift(u32),
 	Reduce(u32),
@@ -318,13 +319,17 @@ enum Action {
 	Error
 }
 
+#[derive(Copy, Clone)]
 enum GotoState {
 	State(u32),
 	Error
 }
 
-
-struct Production(u32, Vec<u32>);\n""")
+#[derive(Copy, Clone)]
+struct Production {
+	lhs: u32,
+	rhs: &'static [u32]
+};\n""")
 
 	print("""#[repr(u32)]
 enum Terminal {""")
@@ -342,18 +347,18 @@ enum Nonterminal {""")
 	print("""\tCOUNT
 }\n
 
-const Augmented: u32 = Nonterminal::COUNT as u32;
+static Augmented: u32 = Nonterminal::COUNT as u32;
 
 use Nonterminal::*;
 use Terminal::*;\n""")
 
-	print(f"const rules: [Production; {len(Pnumbered)}] = [")
+	print(f"static rules: [Production; {len(Pnumbered)}] = [")
 	for i, p in enumerate(Pnumbered):
-		print(f"\tProduction({p.LHS} as u32, vec![{', '.join(['{} as u32'.format(x) for x in p.RHS])}]),")
+		print(f"\tProduction {{lhs:{p.LHS} as u32, rhs:&[{', '.join(['{} as u32'.format(x) for x in p.RHS])}]}},")
 	print("];\n")
 
 
-	print(f"const actiontab: [[Action; {len(action[0])}]; {len(action)}] = [")
+	print(f"static actiontab: [[Action; {len(action[0])}]; {len(action)}] = [")
 	for i, state in enumerate(action):
 		print("\t[", end='')
 		for t in Tnumbered:
@@ -371,7 +376,7 @@ use Terminal::*;\n""")
 		print("],")
 	print("];\n")
 
-	print(f"const gototab: [[GotoState; {len(gototab[0])}]; {len(gototab)}] = [")
+	print(f"static gototab: [[GotoState; {len(gototab[0])}]; {len(gototab)}] = [")
 	for i, state in enumerate(gototab):
 		print('\t[', end='')
 		for t in Vnumbered:
