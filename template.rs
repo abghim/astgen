@@ -18,7 +18,7 @@ enum GotoState {
 struct Production {
 	lhs: u32,
 	rhs: &'static [u32]
-};
+}
 
 #[repr(u32)]
 enum Terminal {
