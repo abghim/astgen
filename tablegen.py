@@ -309,7 +309,7 @@ def rustprint():
 	hashmapt = {}
 	hashmapv = {}
 
-	print("""use std::collections::{HashMap, String, Vector};
+	print("""use std::collections::HashMap;
 
 enum Action {
 	Shift(u32),
@@ -324,7 +324,7 @@ enum GotoState {
 };
 
 
-struct Production(u32, Vector<u32>);""")
+struct Production(u32, Vector<u32>);\n""")
 
 	print("""#[repr(u32)]
 enum Terminal {""")
@@ -339,16 +339,17 @@ enum Nonterminal {""")
 	for i, t in enumerate(Vnumbered):
 		print(f"\t{t} = {i},")
 		hashmapv[i] = t
-	print("""COUNT
-};\n""")
+	print("""\tCOUNT
+};\n\nuse Nonterminal;
+use Terminal;\n""")
 
 	print(f"const rules: [Production; {len(Pnumbered)}] = [")
 	for i, p in enumerate(Pnumbered):
-		print(f"\tProduction({p.LHS}, vec![{', '.join(p.RHS)}]),")
-	print("];")
+		print(f"\tProduction({p.LHS} as u32, vec![{', '.join(['{} as u32'.format(x) for x in p.RHS])}]),")
+	print("];\n")
 
 
-	print(f"const actiontab: [[u32; {len(action)}]; {len(action[0])}] = [")
+	print(f"const actiontab: [[u32; {len(action[0])}]; {len(action)}] = [")
 	for i, state in enumerate(action):
 		print("\t[", end='')
 		for t in Tnumbered:
@@ -364,9 +365,9 @@ enum Nonterminal {""")
 
 			print(f"{toprint}, ", end='')
 		print("],")
-	print("];")
+	print("];\n")
 
-	print(f"const gototab: [[u32; {len(gototab)}]; {len(gototab[0])}] = [")
+	print(f"const gototab: [[u32; {len(gototab[0])}]; {len(gototab)}] = [")
 	for i, state in enumerate(gototab):
 		print('\t[', end='')
 		for t in Vnumbered:
@@ -375,6 +376,8 @@ enum Nonterminal {""")
 			else:
 				print(f"GotoState::State({state[t]}), ", end='')
 		print('],')
-	print("];")
+	print("];\n")
+
+	print("""fn main() {}""")
 
 rustprint()
