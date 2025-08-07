@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+#[derive(Copy, Clone)]
 enum Action {
     Shift(u32),
     Reduce(u32),
@@ -7,22 +8,17 @@ enum Action {
     Error
 }
 
+#[derive(Copy, Clone)]
 enum GotoState {
 	State(u32),
 	Error
 }
 
-struct Production(u32, Vec<u32>);
-
-/*
- * Production(2, vec![2, 1])
- */
-
-
-/*
- * terminals: 0, 1, 2, 3, 4, ...
- * nonterminals: 256, 257, ...
- */
+#[derive(Copy, Clone)]
+struct Production {
+	lhs: u32,
+	rhs: &'static [u32]
+};
 
 #[repr(u32)]
 enum Terminal {
