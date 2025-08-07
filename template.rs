@@ -1,4 +1,4 @@
-use std::collections::{HashMap, String, Vector};
+use std::collections::HashMap;
 
 enum Action {
     Shift(u32),
@@ -42,6 +42,10 @@ enum Nonterminal {
 	...,
 	COUNT
 };
+
+
+use Nonterminal;
+use Terminal;
 
 /*
  * Nonterminals as u32
