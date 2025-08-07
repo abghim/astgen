@@ -329,7 +329,7 @@ enum GotoState {
 struct Production {
 	lhs: u32,
 	rhs: &'static [u32]
-};\n""")
+}\n""")
 
 	print("""#[repr(u32)]
 enum Terminal {""")
@@ -344,21 +344,19 @@ enum Nonterminal {""")
 	for i, t in enumerate(Vnumbered):
 		print(f"\t{t} = {i},")
 		hashmapv[i] = t
-	print("""\tCOUNT
+	print("""\tAugmented
 }\n
-
-static Augmented: u32 = Nonterminal::COUNT as u32;
 
 use Nonterminal::*;
 use Terminal::*;\n""")
 
-	print(f"static rules: [Production; {len(Pnumbered)}] = [")
+	print(f"static RULES: [Production; {len(Pnumbered)}] = [")
 	for i, p in enumerate(Pnumbered):
 		print(f"\tProduction {{lhs:{p.LHS} as u32, rhs:&[{', '.join(['{} as u32'.format(x) for x in p.RHS])}]}},")
 	print("];\n")
 
 
-	print(f"static actiontab: [[Action; {len(action[0])}]; {len(action)}] = [")
+	print(f"static ACTION: [[Action; {len(action[0])}]; {len(action)}] = [")
 	for i, state in enumerate(action):
 		print("\t[", end='')
 		for t in Tnumbered:
@@ -376,7 +374,7 @@ use Terminal::*;\n""")
 		print("],")
 	print("];\n")
 
-	print(f"static gototab: [[GotoState; {len(gototab[0])}]; {len(gototab)}] = [")
+	print(f"static GOTO: [[GotoState; {len(gototab[0])}]; {len(gototab)}] = [")
 	for i, state in enumerate(gototab):
 		print('\t[', end='')
 		for t in Vnumbered:
