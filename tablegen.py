@@ -8,7 +8,7 @@ EOI = "EOI"
 DOT = "."
 
 # special parse table actions
-ERROR = "0"
+ERROR = "ERR"
 ACCEPT = "ACC"
 RRCONFLICT = "r-r"
 SRCONFLICT = "s-r"
@@ -66,19 +66,19 @@ def printset(s):
 calculator_syntax = {
 	"name": "calculator",
 	"start": "E",
-	"terminals": ["id", '+', '*', '(', ')'],
+	"terminals": ["Id", 'Plus', 'Mul', 'Lparen', 'Rparen'],
 	"nonterminals": ["E", "T", "F"],
 	"productions": [
-		["E", 'E', '+', 'T'], # represents the production E -> E + T
+		["E", 'E', 'Plus', 'T'], # represents the production E -> E + T
 		["E", "T"],
-		["T",'T', '*', 'F'],
+		["T",'T', 'Mul', 'F'],
 		["T", 'F'],
-		["F", 'id'],
-		["F", '(', 'E', ')']
+		["F", 'Id'],
+		["F", 'Lparen', 'E', 'Rparen']
 	]
 }
 
-SAUG = 'S\''
+SAUG = 'Augmented'
 
 # grammar from json (= python dict-like structure)
 def from_dict(grammar:dict) -> tuple: # returns (V, T, P, S)
@@ -97,7 +97,6 @@ def from_dict(grammar:dict) -> tuple: # returns (V, T, P, S)
 # load grammar
 V, T, P, S, syntax_name = from_dict(calculator_syntax)
 
-print(V, T, P, S)
 
 #####################   DEFINE YOUR GRAMMAR HERE!   #######################
 ##### make sure to define S, SAUG!
@@ -307,7 +306,8 @@ def printtab():
 		print("")
 
 def rustprint():
-	NUM_T = len(Tnumbered)
+	hashmapt = {}
+	hashmapv = {}
 
 	print("""use std::collections::{HashMap, String, Vector};
 
@@ -316,9 +316,31 @@ enum Action {
 	Reduce(u32),
 	Accept,
 	Error
-}
+};
+
+enum GotoState {
+	State(u32),
+	Error
+};
+
 
 struct Production(u32, Vector<u32>);""")
+
+	print("""#[repr(u32)]
+enum Terminal {""")
+	for i, t in enumerate(Tnumbered):
+		print(f"\t{t} = {i},")
+		hashmapt[i] = t
+	print("""\tCOUNT
+};\n""")
+
+	print("""#[repr(u32)]
+enum Nonterminal {""")
+	for i, t in enumerate(Vnumbered):
+		print(f"\t{t} = {i},")
+		hashmapv[i] = t
+	print("""COUNT
+};\n""")
 
 	print(f"const rules: [Production; {len(Pnumbered)}] = [")
 	for i, p in enumerate(Pnumbered):
@@ -330,9 +352,9 @@ struct Production(u32, Vector<u32>);""")
 	for i, state in enumerate(action):
 		print("\t[", end='')
 		for t in Tnumbered:
-			if state[t] == '0':
+			if state[t] == ERROR:
 				toprint = 'Action::Error'
-			elif state[t] == 'ACC':
+			elif state[t] == ACCEPT:
 				toprint = 'Action::Accept'
 			elif state[t][0] == 's' or state[t][0] == 'r':
 				toprint = (f"Action::Reduce({state[t][1]})" if state[t][0] == 'r' else f"Action::Shift({state[t][1]})")
@@ -344,18 +366,15 @@ struct Production(u32, Vector<u32>);""")
 		print("],")
 	print("];")
 
-	print("\n\nGOTO")
-	print("state\t", end='')
-	i=0
-	for v in Vnumbered:
-		print(f"{v}\t", end='')
-	print("")
-	print("---------------------------------------------------")
-	for state in gototab:
-		print(f"{i}\t", end='')
-		i+=1
-		for v in Vnumbered:
-			print(f"{state[v]}\t", end='')
-		print("")
+	print(f"const gototab: [[u32; {len(gototab)}]; {len(gototab[0])}] = [")
+	for i, state in enumerate(gototab):
+		print('\t[', end='')
+		for t in Vnumbered:
+			if ERROR == state[t]:
+				print("GotoState::Error, ", end='')
+			else:
+				print(f"GotoState::State({state[t]}), ", end='')
+		print('],')
+	print("];")
 
 rustprint()
