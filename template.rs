@@ -57,6 +57,7 @@ const actiontab: [[Action; NUMBER_OF_SYMBOLS]; NUMBER_OF_STATES] = [
     /* state 0 */ [/* sym 0 */ Action::Shift(3), /* sym 1 */ Action::Shift(2), ...],
     /* state 1 */ [...],
     ...
+
 ];
 
 const gototab: [[u32; NUMBER_OF_SYMBOLS]; NUMBER_OF_STATES] = [

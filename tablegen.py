@@ -78,6 +78,18 @@ calculator_syntax = {
 	]
 }
 
+cd_syntax = {
+	"name": "cd",
+	"start": "S",
+	"terminals": ["c", "d"],
+	"nonterminals": ["C", "S"],
+	"productions": [
+		['S', 'C', 'C'],
+		['C', 'c', 'C'],
+		['C', 'd']
+	]
+}
+
 SAUG = 'Augmented'
 
 # grammar from json (= python dict-like structure)
@@ -95,7 +107,7 @@ def from_dict(grammar:dict) -> tuple: # returns (V, T, P, S)
 
 
 # load grammar
-V, T, P, S, syntax_name = from_dict(calculator_syntax)
+V, T, P, S, syntax_name = from_dict(cd_syntax)
 
 
 #####################   DEFINE YOUR GRAMMAR HERE!   #######################
