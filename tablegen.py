@@ -90,6 +90,20 @@ cd_syntax = {
 	]
 }
 
+test_syntax = {
+    "name": "test_grammar",
+    "start": "S",
+    "terminals": ["eq", "mul", "id"],
+    "nonterminals": ["S", "L", "R"],
+    "productions": [
+        ["S", "L", "eq", "R"],
+        ["S", "R"],
+        ["L", "mul", "R"],
+        ["L", "id"],
+        ["R", "L"]
+    ]
+}
+
 SAUG = 'Augmented'
 
 # grammar from json (= python dict-like structure)
@@ -107,7 +121,7 @@ def from_dict(grammar:dict) -> tuple: # returns (V, T, P, S)
 
 
 # load grammar
-V, T, P, S, syntax_name = from_dict(cd_syntax)
+V, T, P, S, syntax_name = from_dict(test_syntax)
 
 
 #####################   DEFINE YOUR GRAMMAR HERE!   #######################
@@ -400,3 +414,6 @@ use Terminal::*;\n""")
 	print("""fn main() {}""")
 
 rustprint()
+
+
+# To-do: ADD SHIFT-REDUCE, REDUCE-REDUCE conflict in Rust table!
