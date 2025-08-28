@@ -121,7 +121,7 @@ def from_dict(grammar:dict) -> tuple: # returns (V, T, P, S)
 
 
 # load grammar
-V, T, P, S, syntax_name = from_dict(test_syntax)
+V, T, P, S, syntax_name = from_dict(calculator_syntax)
 
 
 #####################   DEFINE YOUR GRAMMAR HERE!   #######################
@@ -342,6 +342,8 @@ enum Action {
 	Shift(u32),
 	Reduce(u32),
 	Accept,
+	SRConflict,
+	RRConflict,
 	Error
 }
 
@@ -390,6 +392,10 @@ use Terminal::*;\n""")
 				toprint = 'Action::Error'
 			elif state[t] == ACCEPT:
 				toprint = 'Action::Accept'
+			elif state[t] == SRCONFLICT:
+				toprint = 'Action::SRConflict'
+			elif state[t] == RRCONFLICT:
+				toprint = 'Action::RRConflict'
 			elif state[t][0] == 's' or state[t][0] == 'r':
 				toprint = (f"Action::Reduce({state[t][1]})" if state[t][0] == 'r' else f"Action::Shift({state[t][1]})")
 			else:
@@ -414,6 +420,5 @@ use Terminal::*;\n""")
 	print("""fn main() {}""")
 
 rustprint()
-
 
 # To-do: ADD SHIFT-REDUCE, REDUCE-REDUCE conflict in Rust table!
