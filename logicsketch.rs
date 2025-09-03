@@ -16,12 +16,6 @@ enum GotoState {
     Error,
 }
 
-#[derive(Copy, Clone)]
-struct Production {
-    lhs: u32,
-    rhs: &'static [u32],
-}
-
 #[repr(u32)]
 enum Terminal {
     EOI = 0,
@@ -41,38 +35,42 @@ enum Nonterminal {
     Augmented,
 }
 
+#[derive(Copy, Clone)]
+enum StackState {
+    State(u32),
+    T(Terminal),
+    V(Nonterminal),
+}
+
+#[derive(Copy, Clone)]
+struct Production {
+    lhs: u32,
+    rhs: &'static [u32],
+}
+
 use Nonterminal::*;
 use Terminal::*;
 
 static RULES: [Production; 7] = [
     Production {
-        lhs: E as u32,
-        rhs: &[E as u32, Plus as u32, T as u32],
+        lhs: E,
+        rhs: &[E, Plus, T],
+    },
+    Production { lhs: T, rhs: &[F] },
+    Production { lhs: E, rhs: &[T] },
+    Production {
+        lhs: Augmented,
+        rhs: &[E],
     },
     Production {
-        lhs: T as u32,
-        rhs: &[F as u32],
+        lhs: T,
+        rhs: &[T, Mul, F],
     },
     Production {
-        lhs: E as u32,
-        rhs: &[T as u32],
+        lhs: F,
+        rhs: &[Lparen, E, Rparen],
     },
-    Production {
-        lhs: Augmented as u32,
-        rhs: &[E as u32],
-    },
-    Production {
-        lhs: T as u32,
-        rhs: &[T as u32, Mul as u32, F as u32],
-    },
-    Production {
-        lhs: F as u32,
-        rhs: &[Lparen as u32, E as u32, Rparen as u32],
-    },
-    Production {
-        lhs: F as u32,
-        rhs: &[Id as u32],
-    },
+    Production { lhs: F, rhs: &[Id] },
 ];
 
 static ACTION: [[Action; 6]; 22] = [
@@ -291,12 +289,6 @@ static GOTO: [[GotoState; 3]; 22] = [
     [GotoState::Error, GotoState::Error, GotoState::Error],
 ];
 
-enum StackState {
-    State(u32),
-    T(Terminal),
-    V(Nonterminal),
-}
-
 fn main() {
     let mut stack = vec![StackState::State(0)];
     let input = &[Lparen, Id, Plus, Id, Rparen, Mul, Id, EOI];
@@ -309,7 +301,7 @@ fn main() {
     while ip < input.len() {
         if let Some(s) = stack.last() {
             a = input[ip];
-            match ACTION[s.unwrap()][a as u32] {
+            match ACTION[s.unwrap()][a] {
                 Action::Shift(n) => {
                     stack.push(StackState::T(a));
                     stack.push(StackState::State(n));
@@ -319,7 +311,7 @@ fn main() {
 
                 Action::Reduce(r) => {
                     stack.truncate(stack.len() - 2 * RULES[r].rhs.len());
-                    stack.push(StackState::V(RULES[r].rhs.len())) // SOLVE: ISSUE: RULES appear as u32
+                    stack.push(StackState::V(RULES[r].rhs.len())) // SOLVE: ISSUE: RULES appear
                 }
             }
         }
