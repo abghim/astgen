@@ -380,7 +380,7 @@ use Terminal::*;\n""")
 
 	print(f"static RULES: [Production; {len(Pnumbered)}] = [")
 	for i, p in enumerate(Pnumbered):
-		print(f"\tProduction {{lhs:{p.LHS} as u32, rhs:&[{', '.join(['{} as u32'.format(x) for x in p.RHS])}]}},")
+		print(f"\tProduction {{lhs:{p.LHS}, rhs:&[{', '.join(['{}'.format(x) for x in p.RHS])}]}},")
 	print("];\n")
 
 
